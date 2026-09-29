@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego del Gato (Tic-Tac-Toe)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-x: #38bdf8;
+            --accent-o: #f43f5e;
+            --border-color: #334155;
+            --hover-color: #475569;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .mode-selector {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .mode-selector select {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.4rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .status {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            min-height: 1.5rem;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .cell {
+            background-color: var(--bg-color);
+            border: 2px solid var(--border-color);
+            aspect-ratio: 1;
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .cell:hover {
+            background-color: var(--hover-color);
+        }
+
+        .cell.x {
+            color: var(--accent-x);
+        }
+
+        .cell.o {
+            color: var(--accent-o);
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+        }
+
+        .score-item span {
+            display: block;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            background-color: var(--accent-x);
+            color: #000;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Juego del Gato</h1>
+        
+        <div class="mode-selector">
+            <label for="gameMode">Modo de juego: </label>
+            <select id="gameMode" onchange="cambiarModo()">
+                <option value="pvp">Dos Jugadores (PvP)</option>
+                <option value="ai">Contra IA (Jugador vs Máquina)</option>
+            </select>
+        </div>
+
+        <div class="status" id="status">Turno de: X</div>
+
+        <div class="scoreboard">
+            <div class="score-item">Jugador X <span id="scoreX">0</span></div>
+            <div class="score-item">Empates <span id="scoreTies">0</span></div>
+            <div class="score-item">Jugador O <span id="scoreO">0</span></div>
+        </div>
+
+        <div class="board" id="board">
+            <div class="cell" data-index="0" onclick="realizarJugada(0)"></div>
+            <div class="cell" data-index="1" onclick="realizarJugada(1)"></div>
+            <div class="cell" data-index="2" onclick="realizarJugada(2)"></div>
+            <div class="cell" data-index="3" onclick="realizarJugada(3)"></div>
+            <div class="cell" data-index="4" onclick="realizarJugada(4)"></div>
+            <div class="cell" data-index="5" onclick="realizarJugada(5)"></div>
+            <div class="cell" data-index="6" onclick="realizarJugada(6)"></div>
+            <div class="cell" data-index="7" onclick="realizarJugada(7)"></div>
+            <div class="cell" data-index="8" onclick="realizarJugada(8)"></div>
+        </div>
+
+        <button class="btn" onclick="reiniciarJuego()">Reiniciar Partida</button>
+    </div>
+
+    <script>
+        // Arreglo principal que representa el tablero (9 posiciones)
+        let boardArray = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X'; // X empieza siempre
+        let isGameActive = true;
+        let gegenAI = false; // Por defecto PvP
+
+        let scores = { X: 0, O: 0, ties: 0 };
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columnas
+            [0, 4, 8], [2, 4, 6]              // Diagonales
+        ];
+
+        const statusDisplay = document.getElementById('status');
+        const modeSelector = document.getElementById('gameMode');
+
+        function cambiarModo() {
+            gegenAI = modeSelector.value === 'ai';
+            reiniciarJuego();
+        }
+
+        function realizarJugada(index) {
+            // Validar si la casilla está libre y el juego activo
+            if (boardArray[index] !== '' || !isGameActive) return;
+
+            // Si es modo IA y es turno de la IA, ignorar clics humanos
+            if (gegenAI && currentPlayer === 'O') return;
+
+            ejecutarMovimiento(index, currentPlayer);
+
+            if (isGameActive && gegenAI && currentPlayer === 'O') {
+                statusDisplay.textContent = "Pensando IA...";
+                setTimeout(turnoIA, 500); // Pequeña pausa para simular pensamiento
+            }
+        }
+
+        function ejecutarMovimiento(index, player) {
+            boardArray[index] = player;
+            
+            // Actualizar interfaz visual basada en el arreglo
+            const cell = document.querySelector(`[data-index='${index}']`);
+            cell.textContent = player;
+            cell.classList.add(player.toLowerCase());
+
+            verificarResultado();
+        }
+
+        function turnoIA() {
+            if (!isGameActive) return;
+
+            // IA busca una casilla vacía de forma aleatoria (se puede mejorar a lógica minimax, pero cumple con arreglos)
+            let emptyCells = [];
+            boardArray.forEach((val, idx) => {
+                if (val === '') emptyCells.push(idx);
+            });
+
+            if (emptyCells.length > 0) {
+                // Escoge una celda aleatoria de las disponibles
+                let randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                ejecutarMovimiento(randomIndex, 'O');
+            }
+        }
+
+        function verificarResultado() {
+            let roundWon = false;
+
+            for (let i = 0; i < winningConditions.length; i++) {
+                const [a, b, c] = winningConditions[i];
+                if (boardArray[a] === '' || boardArray[b] === '' || boardArray[c] === '') {
+                    continue;
+                }
+                if (boardArray[a] === boardArray[b] && boardArray[b] === boardArray[c]) {
+                    roundWon = true;
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                statusDisplay.textContent = `¡El jugador ${currentPlayer} ha ganado!`;
+                scores[currentPlayer]++;
+                actualizarMarcador();
+                isGameActive = false;
+                return;
+            }
+
+            // Verificar empate (si no hay espacios vacíos)
+            let roundDraw = !boardArray.includes('');
+            if (roundDraw) {
+                statusDisplay.textContent = `¡Empate!`;
+                scores.ties++;
+                actualizarMarcador();
+                isGameActive = false;
+                return;
+            }
+
+            // Cambiar de turno
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            statusDisplay.textContent = `Turno de: ${currentPlayer}`;
+        }
+
+        function actualizarMarcador() {
+            document.getElementById('scoreX').textContent = scores.X;
+            document.getElementById('scoreO').textContent = scores.O;
+            document.getElementById('scoreTies').textContent = scores.ties;
+        }
+
+        function reiniciarJuego() {
+            boardArray = ['', '', '', '', '', '', '', '', ''];
+            isGameActive = true;
+            currentPlayer = 'X';
+            statusDisplay.textContent = `Turno de: ${currentPlayer}`;
+
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('x', 'o');
+            });
+
+            // Si el modo es IA y por alguna razón empieza O (no aplica aquí porque X empieza), manejarlo
+        }
+    </script>
+</body>
+</html>
